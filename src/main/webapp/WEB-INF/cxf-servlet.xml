@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:camel="http://camel.apache.org/schema/spring"
+       xmlns:cxf="http://camel.apache.org/schema/cxf"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:service="http://devbox/2012/03/Service"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://camel.apache.org/schema/cxf
+       http://camel.apache.org/schema/cxf/camel-cxf.xsd
+       http://camel.apache.org/schema/spring
+       http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+    <cxf:cxfEndpoint id="cxfConsumerEndpoint"
+                     endpointName="service:ExampleServiceSoap"
+                     serviceName="service:ExampleService"
+                     wsdlURL="/WEB-INF/ExampleService.asmx.wsdl"
+                     address="/exampleService">
+        <cxf:features>
+            <ref bean="loggingFeature"/>
+        </cxf:features>
+    </cxf:cxfEndpoint>
+
+    <bean id="loggingFeature"
+          class="org.apache.cxf.feature.LoggingFeature">
+        <property name="prettyLogging" value="true"/>
+    </bean>
+
+    <camel:endpoint id="consumerEndpoint"
+                    uri="cxf:bean:cxfConsumerEndpoint?dataFormat=PAYLOAD"/>
+
+    <camelContext id="service-context"
+                  trace="false" useMDCLogging="true"
+                  xmlns="http://camel.apache.org/schema/spring">
+        <route id="service-route">
+            <from ref="consumerEndpoint"/>
+            <setHeader headerName="name">
+                <xpath>//service:Hello/service:name/text()</xpath>
+            </setHeader>
+            <transform>
+                <simple><![CDATA[
+                <HelloResponse xmlns="http://devbox/2012/03/Service">
+                    <HelloResult>Hello ${headers.name}</HelloResult>
+                </HelloResponse>
+                ]]></simple>
+            </transform>
+        </route>
+    </camelContext>
+
+</beans>
